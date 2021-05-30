@@ -1,10 +1,14 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
+
+use rocket::response::NamedFile;
+use std::path::Path;
 
 #[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
+fn index() -> Option<NamedFile> {
+    NamedFile::open(Path::new("./storage/test.txt")).ok()
 }
 
 fn main() {
