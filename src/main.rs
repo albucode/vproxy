@@ -1,5 +1,3 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
 mod models;
 mod schema;
 
@@ -14,7 +12,7 @@ use diesel::prelude::*;
 use diesel::Connection;
 use dotenv::dotenv;
 use models::*;
-use rocket::response::NamedFile;
+use rocket::fs::NamedFile;
 use std::env;
 use std::path::Path;
 
@@ -27,7 +25,7 @@ pub fn establish_connection() -> PgConnection {
 }
 
 #[get("/")]
-fn index() -> Option<NamedFile> {
+async fn index() -> Option<NamedFile> {
     use crate::schema::videos::dsl::*;
 
     let connection = establish_connection();
@@ -36,9 +34,10 @@ fn index() -> Option<NamedFile> {
 
     println!("{:?}", results);
 
-    NamedFile::open(Path::new("./storage/test.txt")).ok()
+    NamedFile::open(Path::new("./storage/test.txt")).await.ok()
 }
 
-fn main() {
-    rocket::ignite().mount("/", routes![index]).launch();
+#[launch]
+fn rocket() -> _ {
+    rocket::build().mount("/", routes![index])
 }
