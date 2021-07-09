@@ -8,4 +8,5 @@ edition = "2018"
 chrono = "0.4.19"
 diesel = { version = "1.4.7", features = ["chrono", "postgres"] }
 dotenv = "0.15.0"
+regex = "1.5.4"
 rocket = "0.5.0-rc.1"
