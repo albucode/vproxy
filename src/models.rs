@@ -75,6 +75,17 @@ impl Segment {
             .load::<Segment>(&connection)
             .expect("Error loading Segment")
     }
+
+    pub fn by_variant(variant: &Variant) -> Vec<Segment> {
+        use crate::schema::segments::dsl::*;
+
+        let connection = Database::connection();
+
+        segments
+            .filter(variant_id.eq(variant.id))
+            .load::<Segment>(&connection)
+            .expect("Error loading Segment")
+    }
 }
 
 impl ActiveStorageAttachment {

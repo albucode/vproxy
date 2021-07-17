@@ -72,7 +72,63 @@ async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>>
     }
 }
 
+#[get("/variants/<file_name>")]
+async fn variant(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
+    let regex = match Regex::new(r"([a-zA-Z0-9]{10}).m3u8") {
+        Ok(regex) => regex,
+        Err(_) => return Result::Err(NotFound(String::from("Invalid regex."))),
+    };
+
+    let capture_groups = match regex.captures(file_name) {
+        Some(capture_groups) => capture_groups,
+        None => return Result::Err(NotFound(String::from("Invalid filename."))),
+    };
+
+    let variant_pid = match capture_groups.get(1) {
+        Some(variant_pid) => variant_pid.as_str(),
+        None => return Result::Err(NotFound(String::from("No identifier in filename."))),
+    };
+
+    let variants = Variant::by_public_id(variant_pid);
+
+    let first_variant = variants.first();
+
+    let variant = match first_variant {
+        Some(variant) => variant,
+        None => return Result::Err(NotFound("Variant not found.".to_string())),
+    };
+
+    let segments = Segment::by_variant(variant);
+
+    if segments.is_empty() {
+        return Result::Err(NotFound("Variant has no segments.".to_string()));
+    }
+
+    let mut playlist = String::from(
+        r#"#EXTM3U
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-TARGETDURATION:6
+#EXT-X-VERSION:4
+#EXT-X-MEDIA-SEQUENCE:0
+"#,
+    );
+
+    for segment in segments.into_iter() {
+        playlist.push_str(&format!("#EXTINF:{}\n", segment.duration));
+        playlist.push_str(&format!(
+            "http://localhost:8000/segments/{}_{}.ts\n",
+            variant_pid, segment.position
+        ));
+    }
+
+    playlist.push_str("#EXT-X-ENDLIST");
+
+    let content_type = ContentType::new("application", "x-mpegURL");
+
+    Result::Ok(Custom(content_type, playlist))
+}
+
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![segment])
+    rocket::build().mount("/", routes![segment, variant])
 }
