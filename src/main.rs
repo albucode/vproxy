@@ -128,7 +128,57 @@ async fn variant(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
     Result::Ok(Custom(content_type, playlist))
 }
 
+#[get("/videos/<file_name>")]
+async fn video(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
+    let regex = match Regex::new(r"([a-zA-Z0-9]{10}).m3u8") {
+        Ok(regex) => regex,
+        Err(_) => return Result::Err(NotFound(String::from("Invalid regex."))),
+    };
+
+    let capture_groups = match regex.captures(file_name) {
+        Some(capture_groups) => capture_groups,
+        None => return Result::Err(NotFound(String::from("Invalid filename."))),
+    };
+
+    let video_pis = match capture_groups.get(1) {
+        Some(video_pis) => video_pis.as_str(),
+        None => return Result::Err(NotFound(String::from("No identifier in filename."))),
+    };
+
+    let videos = Video::by_public_id(video_pis);
+
+    let first_video = videos.first();
+
+    let video = match first_video {
+        Some(video) => video,
+        None => return Result::Err(NotFound("Video not found.".to_string())),
+    };
+
+    let variants = Variant::by_video(&video);
+
+    if variants.is_empty() {
+        return Result::Err(NotFound("Video has no variants.".to_string()));
+    }
+
+    let mut playlist = String::from("#EXTM3U\n");
+
+    for variant in variants.into_iter() {
+        playlist.push_str(&format!(
+            "#EXT-X-STREAM-INF:BANDWIDTH={},RESOLUTION={}x{},CODECS=\"avc1.42e00a,mp4a.40.2\"\n",
+            variant.bitrate, variant.width, variant.height
+        ));
+        playlist.push_str(&format!(
+            "http://localhost:8000/variants/{}.m3u8\n",
+            variant.public_id
+        ));
+    }
+
+    let content_type = ContentType::new("application", "x-mpegURL");
+
+    Result::Ok(Custom(content_type, playlist))
+}
+
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![segment, variant])
+    rocket::build().mount("/", routes![segment, variant, video])
 }
