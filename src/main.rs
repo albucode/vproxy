@@ -64,7 +64,7 @@ async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>>
 
     let named_file = NamedFile::open(Path::new(&path)).await;
 
-    let content_type = ContentType::new("video", "x-MP2T");
+    let content_type = ContentType::new("video", "mp2t");
 
     match named_file {
         Ok(named_file) => Result::Ok(Custom(content_type, named_file)),
@@ -123,7 +123,7 @@ async fn variant(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
 
     playlist.push_str("#EXT-X-ENDLIST");
 
-    let content_type = ContentType::new("application", "x-mpegURL");
+    let content_type = ContentType::new("application", "vnd.apple.mpegurl");
 
     Result::Ok(Custom(content_type, playlist))
 }
@@ -173,7 +173,7 @@ async fn video(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
         ));
     }
 
-    let content_type = ContentType::new("application", "x-mpegURL");
+    let content_type = ContentType::new("application", "vnd.apple.mpegurl");
 
     Result::Ok(Custom(content_type, playlist))
 }
