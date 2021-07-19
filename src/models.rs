@@ -48,6 +48,19 @@ pub struct Variant {
     pub updated_at: NaiveDateTime,
 }
 
+#[derive(Queryable, Debug)]
+pub struct Video {
+    pub id: i64,
+    pub title: Option<String>,
+    pub published: Option<bool>,
+    pub status: Option<i32>,
+    pub source: Option<String>,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+    pub public_id: String,
+    pub user_id: i64,
+}
+
 impl Variant {
     pub fn by_public_id(pid: &str) -> Vec<Variant> {
         use crate::schema::variants::dsl::*;
@@ -59,6 +72,17 @@ impl Variant {
             .limit(1)
             .load::<Variant>(&connection)
             .expect("Error loading Variant")
+    }
+
+    pub fn by_video(video: &Video) -> Vec<Variant> {
+        use crate::schema::variants::dsl::*;
+
+        let connection = Database::connection();
+
+        variants
+            .filter(video_id.eq(video.id))
+            .load::<Variant>(&connection)
+            .expect("Error loading Video")
     }
 }
 
@@ -72,6 +96,17 @@ impl Segment {
             .filter(variant_id.eq(variant))
             .filter(position.eq(pos))
             .limit(1)
+            .load::<Segment>(&connection)
+            .expect("Error loading Segment")
+    }
+
+    pub fn by_variant(variant: &Variant) -> Vec<Segment> {
+        use crate::schema::segments::dsl::*;
+
+        let connection = Database::connection();
+
+        segments
+            .filter(variant_id.eq(variant.id))
             .load::<Segment>(&connection)
             .expect("Error loading Segment")
     }
@@ -102,5 +137,19 @@ impl ActiveStorageBlob {
             Ok(blob) => blob,
             Err(_) => panic!("Error querying Blob."),
         }
+    }
+}
+
+impl Video {
+    pub fn by_public_id(pid: &str) -> Vec<Video> {
+        use crate::schema::videos::dsl::*;
+
+        let connection = Database::connection();
+
+        videos
+            .filter(public_id.eq(pid))
+            .limit(1)
+            .load::<Video>(&connection)
+            .expect("Error loading Video")
     }
 }

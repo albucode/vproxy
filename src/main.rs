@@ -64,7 +64,7 @@ async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>>
 
     let named_file = NamedFile::open(Path::new(&path)).await;
 
-    let content_type = ContentType::new("video", "x-MP2T");
+    let content_type = ContentType::new("video", "mp2t");
 
     match named_file {
         Ok(named_file) => Result::Ok(Custom(content_type, named_file)),
@@ -72,7 +72,113 @@ async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>>
     }
 }
 
+#[get("/variants/<file_name>")]
+async fn variant(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
+    let regex = match Regex::new(r"([a-zA-Z0-9]{10}).m3u8") {
+        Ok(regex) => regex,
+        Err(_) => return Result::Err(NotFound(String::from("Invalid regex."))),
+    };
+
+    let capture_groups = match regex.captures(file_name) {
+        Some(capture_groups) => capture_groups,
+        None => return Result::Err(NotFound(String::from("Invalid filename."))),
+    };
+
+    let variant_pid = match capture_groups.get(1) {
+        Some(variant_pid) => variant_pid.as_str(),
+        None => return Result::Err(NotFound(String::from("No identifier in filename."))),
+    };
+
+    let variants = Variant::by_public_id(variant_pid);
+
+    let first_variant = variants.first();
+
+    let variant = match first_variant {
+        Some(variant) => variant,
+        None => return Result::Err(NotFound("Variant not found.".to_string())),
+    };
+
+    let segments = Segment::by_variant(variant);
+
+    if segments.is_empty() {
+        return Result::Err(NotFound("Variant has no segments.".to_string()));
+    }
+
+    let mut playlist = String::from(
+        r#"#EXTM3U
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-TARGETDURATION:6
+#EXT-X-VERSION:4
+#EXT-X-MEDIA-SEQUENCE:0
+"#,
+    );
+
+    for segment in segments.into_iter() {
+        playlist.push_str(&format!("#EXTINF:{}\n", segment.duration));
+        playlist.push_str(&format!(
+            "http://localhost:8000/segments/{}_{}.ts\n",
+            variant_pid, segment.position
+        ));
+    }
+
+    playlist.push_str("#EXT-X-ENDLIST");
+
+    let content_type = ContentType::new("application", "vnd.apple.mpegurl");
+
+    Result::Ok(Custom(content_type, playlist))
+}
+
+#[get("/videos/<file_name>")]
+async fn video(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
+    let regex = match Regex::new(r"([a-zA-Z0-9]{10}).m3u8") {
+        Ok(regex) => regex,
+        Err(_) => return Result::Err(NotFound(String::from("Invalid regex."))),
+    };
+
+    let capture_groups = match regex.captures(file_name) {
+        Some(capture_groups) => capture_groups,
+        None => return Result::Err(NotFound(String::from("Invalid filename."))),
+    };
+
+    let video_pis = match capture_groups.get(1) {
+        Some(video_pis) => video_pis.as_str(),
+        None => return Result::Err(NotFound(String::from("No identifier in filename."))),
+    };
+
+    let videos = Video::by_public_id(video_pis);
+
+    let first_video = videos.first();
+
+    let video = match first_video {
+        Some(video) => video,
+        None => return Result::Err(NotFound("Video not found.".to_string())),
+    };
+
+    let variants = Variant::by_video(&video);
+
+    if variants.is_empty() {
+        return Result::Err(NotFound("Video has no variants.".to_string()));
+    }
+
+    let mut playlist = String::from("#EXTM3U\n");
+
+    for variant in variants.into_iter() {
+        playlist.push_str(&format!(
+            "#EXT-X-STREAM-INF:BANDWIDTH={},RESOLUTION={}x{},CODECS=\"avc1.42e00a,mp4a.40.2\"\n",
+            variant.bitrate, variant.width, variant.height
+        ));
+        playlist.push_str(&format!(
+            "http://localhost:8000/variants/{}.m3u8\n",
+            variant.public_id
+        ));
+    }
+
+    let content_type = ContentType::new("application", "vnd.apple.mpegurl");
+
+    Result::Ok(Custom(content_type, playlist))
+}
+
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![segment])
+    rocket::build().mount("/", routes![segment, variant, video])
 }
