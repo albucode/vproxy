@@ -56,7 +56,7 @@ async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>>
     let key = blob.key;
 
     let path = format!(
-        "/Users/gui/dev/albuvideo-api/storage/{}/{}/{}",
+        "../albuvideo-api/storage/{}/{}/{}",
         &key[..=1],
         &key[2..=3],
         key
@@ -64,10 +64,13 @@ async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>>
 
     let named_file = NamedFile::open(Path::new(&path)).await;
 
-    let content_type = ContentType::new("video", "mp2t");
-
     match named_file {
-        Ok(named_file) => Result::Ok(Custom(content_type, named_file)),
+        Ok(named_file) => {
+            VideoStreamEvent::log_event(&variant, segment.duration);
+
+            let content_type = ContentType::new("video", "mp2t");
+            Result::Ok(Custom(content_type, named_file))
+        }
         Err(e) => Result::Err(NotFound(e.to_string())),
     }
 }
