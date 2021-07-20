@@ -106,7 +106,7 @@ table! {
 }
 
 table! {
-    video_watch_events (id) {
+    video_stream_events (id) {
         id -> Int8,
         video_id -> Int8,
         user_id -> Int8,
@@ -131,12 +131,12 @@ table! {
 }
 
 table! {
-    webhooks (id) {
+    webhook_subscriptions (id) {
         id -> Int8,
         topic -> Varchar,
         url -> Varchar,
         user_id -> Int8,
-        public_id -> Nullable<Varchar>,
+        public_id -> Varchar,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -148,10 +148,10 @@ joinable!(active_storage_variant_records -> active_storage_blobs (blob_id));
 joinable!(segments -> variants (variant_id));
 joinable!(signature_keys -> users (user_id));
 joinable!(variants -> videos (video_id));
-joinable!(video_watch_events -> users (user_id));
-joinable!(video_watch_events -> videos (video_id));
+joinable!(video_stream_events -> users (user_id));
+joinable!(video_stream_events -> videos (video_id));
 joinable!(videos -> users (user_id));
-joinable!(webhooks -> users (user_id));
+joinable!(webhook_subscriptions -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
     access_tokens,
@@ -164,7 +164,7 @@ allow_tables_to_appear_in_same_query!(
     signature_keys,
     users,
     variants,
-    video_watch_events,
+    video_stream_events,
     videos,
-    webhooks,
+    webhook_subscriptions,
 );

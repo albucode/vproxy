@@ -61,6 +61,16 @@ pub struct Video {
     pub user_id: i64,
 }
 
+#[derive(Queryable, Debug)]
+pub struct VideoStreamEvent {
+    pub id: i64,
+    pub video_id: i64,
+    pub user_id: i64,
+    pub duration: f64,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+
 impl Variant {
     pub fn by_public_id(pid: &str) -> Vec<Variant> {
         use crate::schema::variants::dsl::*;
@@ -151,5 +161,26 @@ impl Video {
             .limit(1)
             .load::<Video>(&connection)
             .expect("Error loading Video")
+    }
+}
+
+impl VideoStreamEvent {
+    pub fn log_event(variant_object: &Variant, segment_duration: f64) -> usize {
+        use crate::schema::video_stream_events::dsl::*;
+
+        let connection = Database::connection();
+
+        let now = std::time::SystemTime::now();
+
+        diesel::insert_into(video_stream_events)
+            .values((
+                video_id.eq(variant_object.video_id),
+                duration.eq(segment_duration),
+                user_id.eq(1),
+                created_at.eq(now),
+                updated_at.eq(now),
+            ))
+            .execute(&connection)
+            .expect("Failed to insert VideoWatchEvent.")
     }
 }
