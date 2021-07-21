@@ -24,13 +24,9 @@ async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>>
     let variant_pid = capture_groups.get(1).map_or("", |m| m.as_str());
     let segment_position = capture_groups.get(2).map_or("", |m| m.as_str());
 
-    let variants = Variant::by_public_id(variant_pid);
-
-    let first_variant = variants.first();
-
-    let variant = match first_variant {
-        Some(variant) => variant,
-        None => return Result::Err(NotFound("Variant not found.".to_string())),
+    let variant = match Variant::find_by_public_id(variant_pid) {
+        Ok(variant) => variant,
+        Err(_) => return Result::Err(NotFound("Variant not found.".to_string())),
     };
 
     let segments = Segment::by_position(variant.id, segment_position.parse::<i32>().unwrap());
@@ -92,16 +88,12 @@ async fn variant(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
         None => return Result::Err(NotFound(String::from("No identifier in filename."))),
     };
 
-    let variants = Variant::by_public_id(variant_pid);
-
-    let first_variant = variants.first();
-
-    let variant = match first_variant {
-        Some(variant) => variant,
-        None => return Result::Err(NotFound("Variant not found.".to_string())),
+    let variant = match Variant::find_by_public_id(variant_pid) {
+        Ok(variant) => variant,
+        Err(_) => return Result::Err(NotFound("Variant not found.".to_string())),
     };
 
-    let segments = Segment::by_variant(variant);
+    let segments = Segment::by_variant(&variant);
 
     if segments.is_empty() {
         return Result::Err(NotFound("Variant has no segments.".to_string()));

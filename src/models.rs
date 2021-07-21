@@ -72,16 +72,12 @@ pub struct VideoStreamEvent {
 }
 
 impl Variant {
-    pub fn by_public_id(pid: &str) -> Vec<Variant> {
+    pub fn find_by_public_id(pid: &str) -> QueryResult<Variant> {
         use crate::schema::variants::dsl::*;
-
-        let connection = Database::connection();
 
         variants
             .filter(public_id.eq(pid))
-            .limit(1)
-            .load::<Variant>(&connection)
-            .expect("Error loading Variant")
+            .first(&Database::connection())
     }
 
     pub fn by_video(video: &Video) -> Vec<Variant> {
