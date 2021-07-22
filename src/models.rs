@@ -119,7 +119,7 @@ impl Segment {
 }
 
 impl ActiveStorageAttachment {
-    pub fn by_segment(segment_id: i64) -> Vec<ActiveStorageAttachment> {
+    pub fn find_by_segment(segment_id: i64) -> QueryResult<ActiveStorageAttachment> {
         use crate::schema::active_storage_attachments::dsl::*;
 
         let connection = Database::connection();
@@ -127,9 +127,7 @@ impl ActiveStorageAttachment {
         active_storage_attachments
             .filter(record_type.eq("Segment"))
             .filter(record_id.eq(segment_id))
-            .limit(1)
-            .load::<ActiveStorageAttachment>(&connection)
-            .expect("Error loading ActiveStorageAttachment")
+            .first(&connection)
     }
 }
 

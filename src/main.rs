@@ -38,13 +38,9 @@ async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>>
         None => return Result::Err(NotFound("Segment not found.".to_string())),
     };
 
-    let attachment = ActiveStorageAttachment::by_segment(segment.id);
-
-    let first_attachment = attachment.first();
-
-    let attachment = match first_attachment {
-        Some(attachment) => attachment,
-        None => return Result::Err(NotFound("Attachment not found.".to_string())),
+    let attachment = match ActiveStorageAttachment::find_by_segment(segment.id) {
+        Ok(attachment) => attachment,
+        Err(_) => return Result::Err(NotFound("Attachment not found.".to_string())),
     };
 
     let blob = ActiveStorageBlob::find_by_id(attachment.blob_id);
