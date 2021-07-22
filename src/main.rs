@@ -29,14 +29,11 @@ async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>>
         Err(_) => return Result::Err(NotFound("Variant not found.".to_string())),
     };
 
-    let segments = Segment::by_position(variant.id, segment_position.parse::<i32>().unwrap());
-
-    let first_segment = segments.first();
-
-    let segment = match first_segment {
-        Some(segment) => segment,
-        None => return Result::Err(NotFound("Segment not found.".to_string())),
-    };
+    let segment =
+        match Segment::find_by_position(variant.id, segment_position.parse::<i32>().unwrap()) {
+            Ok(segment) => segment,
+            Err(_) => return Result::Err(NotFound("Segment not found.".to_string())),
+        };
 
     let attachment = match ActiveStorageAttachment::find_by_segment(segment.id) {
         Ok(attachment) => attachment,

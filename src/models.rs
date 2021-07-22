@@ -93,7 +93,7 @@ impl Variant {
 }
 
 impl Segment {
-    pub fn by_position(variant: i64, pos: i32) -> Vec<Segment> {
+    pub fn find_by_position(variant: i64, pos: i32) -> QueryResult<Segment> {
         use crate::schema::segments::dsl::*;
 
         let connection = Database::connection();
@@ -101,9 +101,7 @@ impl Segment {
         segments
             .filter(variant_id.eq(variant))
             .filter(position.eq(pos))
-            .limit(1)
-            .load::<Segment>(&connection)
-            .expect("Error loading Segment")
+            .first(&connection)
     }
 
     pub fn by_variant(variant: &Variant) -> Vec<Segment> {
