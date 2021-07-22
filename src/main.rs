@@ -136,13 +136,9 @@ async fn video(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
         None => return Result::Err(NotFound(String::from("No identifier in filename."))),
     };
 
-    let videos = Video::by_public_id(video_pis);
-
-    let first_video = videos.first();
-
-    let video = match first_video {
-        Some(video) => video,
-        None => return Result::Err(NotFound("Video not found.".to_string())),
+    let video = match Video::find_by_public_id(video_pis) {
+        Ok(video) => video,
+        Err(_) => return Result::Err(NotFound("Video not found.".to_string())),
     };
 
     let variants = Variant::by_video(&video);

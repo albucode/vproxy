@@ -145,16 +145,12 @@ impl ActiveStorageBlob {
 }
 
 impl Video {
-    pub fn by_public_id(pid: &str) -> Vec<Video> {
+    pub fn find_by_public_id(pid: &str) -> QueryResult<Video> {
         use crate::schema::videos::dsl::*;
 
         let connection = Database::connection();
 
-        videos
-            .filter(public_id.eq(pid))
-            .limit(1)
-            .load::<Video>(&connection)
-            .expect("Error loading Video")
+        videos.filter(public_id.eq(pid)).first(&connection)
     }
 }
 
