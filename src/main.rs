@@ -64,15 +64,14 @@ async fn variant(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
     let regex = Regex::new(r"([a-zA-Z0-9]{10}).m3u8")
         .map_err(|_| NotFound("Video not found.".to_string()))?;
 
-    let capture_groups = match regex.captures(file_name) {
-        Some(capture_groups) => capture_groups,
-        None => return Result::Err(NotFound(String::from("Invalid filename."))),
-    };
+    let capture_groups = regex
+        .captures(file_name)
+        .ok_or_else(|| NotFound(String::from("Invalid filename.")))?;
 
-    let variant_pid = match capture_groups.get(1) {
-        Some(variant_pid) => variant_pid.as_str(),
-        None => return Result::Err(NotFound(String::from("No identifier in filename."))),
-    };
+    let variant_pid = capture_groups
+        .get(1)
+        .ok_or_else(|| NotFound(String::from("No identifier in filename.")))?
+        .as_str();
 
     let variant = Variant::find_by_public_id(variant_pid)
         .map_err(|_| NotFound("Variant not found.".to_string()))?;
@@ -112,15 +111,14 @@ async fn video(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
     let regex = Regex::new(r"([a-zA-Z0-9]{10}).m3u8")
         .map_err(|_| NotFound("Invalid regex.".to_string()))?;
 
-    let capture_groups = match regex.captures(file_name) {
-        Some(capture_groups) => capture_groups,
-        None => return Result::Err(NotFound(String::from("Invalid filename."))),
-    };
+    let capture_groups = regex
+        .captures(file_name)
+        .ok_or_else(|| NotFound(String::from("Invalid filename.")))?;
 
-    let video_pis = match capture_groups.get(1) {
-        Some(video_pis) => video_pis.as_str(),
-        None => return Result::Err(NotFound(String::from("No identifier in filename."))),
-    };
+    let video_pis = capture_groups
+        .get(1)
+        .ok_or_else(|| NotFound(String::from("No identifier in filename.")))?
+        .as_str();
 
     let video = Video::find_by_public_id(video_pis)
         .map_err(|_| NotFound("Video not found.".to_string()))?;
