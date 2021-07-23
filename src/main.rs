@@ -18,27 +18,22 @@ use std::path::Path;
 
 #[get("/segments/<file_name>")]
 async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>> {
-    let regex = Regex::new(r"([a-zA-Z0-9]{10})_(\d+)\.ts").unwrap();
+    let regex = Regex::new(r"([a-zA-Z0-9]{10})_(\d+)\.ts")
+        .map_err(|_| NotFound("Video not found.".to_string()))?;
+
     let capture_groups = regex.captures(file_name).unwrap();
 
     let variant_pid = capture_groups.get(1).map_or("", |m| m.as_str());
     let segment_position = capture_groups.get(2).map_or("", |m| m.as_str());
 
-    let variant = match Variant::find_by_public_id(variant_pid) {
-        Ok(variant) => variant,
-        Err(_) => return Result::Err(NotFound("Variant not found.".to_string())),
-    };
+    let variant = Variant::find_by_public_id(variant_pid)
+        .map_err(|_| NotFound("Variant not found.".to_string()))?;
 
-    let segment =
-        match Segment::find_by_position(variant.id, segment_position.parse::<i32>().unwrap()) {
-            Ok(segment) => segment,
-            Err(_) => return Result::Err(NotFound("Segment not found.".to_string())),
-        };
+    let segment = Segment::find_by_position(variant.id, segment_position.parse::<i32>().unwrap())
+        .map_err(|_| NotFound("Segment not found.".to_string()))?;
 
-    let attachment = match ActiveStorageAttachment::find_by_segment(segment.id) {
-        Ok(attachment) => attachment,
-        Err(_) => return Result::Err(NotFound("Attachment not found.".to_string())),
-    };
+    let attachment = ActiveStorageAttachment::find_by_segment(segment.id)
+        .map_err(|_| NotFound("Attachment not found.".to_string()))?;
 
     let blob = ActiveStorageBlob::find_by_id(attachment.blob_id);
 
@@ -66,10 +61,8 @@ async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>>
 
 #[get("/variants/<file_name>")]
 async fn variant(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
-    let regex = match Regex::new(r"([a-zA-Z0-9]{10}).m3u8") {
-        Ok(regex) => regex,
-        Err(_) => return Result::Err(NotFound(String::from("Invalid regex."))),
-    };
+    let regex = Regex::new(r"([a-zA-Z0-9]{10}).m3u8")
+        .map_err(|_| NotFound("Video not found.".to_string()))?;
 
     let capture_groups = match regex.captures(file_name) {
         Some(capture_groups) => capture_groups,
@@ -81,10 +74,8 @@ async fn variant(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
         None => return Result::Err(NotFound(String::from("No identifier in filename."))),
     };
 
-    let variant = match Variant::find_by_public_id(variant_pid) {
-        Ok(variant) => variant,
-        Err(_) => return Result::Err(NotFound("Variant not found.".to_string())),
-    };
+    let variant = Variant::find_by_public_id(variant_pid)
+        .map_err(|_| NotFound("Variant not found.".to_string()))?;
 
     let segments = Segment::by_variant(&variant);
 
@@ -118,10 +109,8 @@ async fn variant(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
 
 #[get("/videos/<file_name>")]
 async fn video(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
-    let regex = match Regex::new(r"([a-zA-Z0-9]{10}).m3u8") {
-        Ok(regex) => regex,
-        Err(_) => return Result::Err(NotFound(String::from("Invalid regex."))),
-    };
+    let regex = Regex::new(r"([a-zA-Z0-9]{10}).m3u8")
+        .map_err(|_| NotFound("Invalid regex.".to_string()))?;
 
     let capture_groups = match regex.captures(file_name) {
         Some(capture_groups) => capture_groups,
@@ -133,10 +122,8 @@ async fn video(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
         None => return Result::Err(NotFound(String::from("No identifier in filename."))),
     };
 
-    let video = match Video::find_by_public_id(video_pis) {
-        Ok(video) => video,
-        Err(_) => return Result::Err(NotFound("Video not found.".to_string())),
-    };
+    let video = Video::find_by_public_id(video_pis)
+        .map_err(|_| NotFound("Video not found.".to_string()))?;
 
     let variants = Variant::by_video(&video);
 
