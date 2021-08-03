@@ -72,16 +72,12 @@ pub struct VideoStreamEvent {
 }
 
 impl Variant {
-    pub fn by_public_id(pid: &str) -> Vec<Variant> {
+    pub fn find_by_public_id(pid: &str) -> QueryResult<Variant> {
         use crate::schema::variants::dsl::*;
-
-        let connection = Database::connection();
 
         variants
             .filter(public_id.eq(pid))
-            .limit(1)
-            .load::<Variant>(&connection)
-            .expect("Error loading Variant")
+            .first(&Database::connection())
     }
 
     pub fn by_video(video: &Video) -> Vec<Variant> {
@@ -97,7 +93,7 @@ impl Variant {
 }
 
 impl Segment {
-    pub fn by_position(variant: i64, pos: i32) -> Vec<Segment> {
+    pub fn find_by_position(variant: i64, pos: i32) -> QueryResult<Segment> {
         use crate::schema::segments::dsl::*;
 
         let connection = Database::connection();
@@ -105,9 +101,7 @@ impl Segment {
         segments
             .filter(variant_id.eq(variant))
             .filter(position.eq(pos))
-            .limit(1)
-            .load::<Segment>(&connection)
-            .expect("Error loading Segment")
+            .first(&connection)
     }
 
     pub fn by_variant(variant: &Variant) -> Vec<Segment> {
@@ -123,7 +117,7 @@ impl Segment {
 }
 
 impl ActiveStorageAttachment {
-    pub fn by_segment(segment_id: i64) -> Vec<ActiveStorageAttachment> {
+    pub fn find_by_segment(segment_id: i64) -> QueryResult<ActiveStorageAttachment> {
         use crate::schema::active_storage_attachments::dsl::*;
 
         let connection = Database::connection();
@@ -131,9 +125,7 @@ impl ActiveStorageAttachment {
         active_storage_attachments
             .filter(record_type.eq("Segment"))
             .filter(record_id.eq(segment_id))
-            .limit(1)
-            .load::<ActiveStorageAttachment>(&connection)
-            .expect("Error loading ActiveStorageAttachment")
+            .first(&connection)
     }
 }
 
@@ -151,16 +143,12 @@ impl ActiveStorageBlob {
 }
 
 impl Video {
-    pub fn by_public_id(pid: &str) -> Vec<Video> {
+    pub fn find_by_public_id(pid: &str) -> QueryResult<Video> {
         use crate::schema::videos::dsl::*;
 
         let connection = Database::connection();
 
-        videos
-            .filter(public_id.eq(pid))
-            .limit(1)
-            .load::<Video>(&connection)
-            .expect("Error loading Video")
+        videos.filter(public_id.eq(pid)).first(&connection)
     }
 }
 
