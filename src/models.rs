@@ -67,6 +67,7 @@ pub struct VideoStreamEvent {
     pub video_id: i64,
     pub user_id: i64,
     pub duration: f64,
+    pub session_id: Option<String>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
@@ -153,7 +154,7 @@ impl Video {
 }
 
 impl VideoStreamEvent {
-    pub fn log_event(variant_object: &Variant, segment_duration: f64) -> usize {
+    pub fn log_event(variant_object: &Variant, segment_duration: f64, session: &str) -> usize {
         use crate::schema::video_stream_events::dsl::*;
 
         let connection = Database::connection();
@@ -164,6 +165,7 @@ impl VideoStreamEvent {
             .values((
                 video_id.eq(variant_object.video_id),
                 duration.eq(segment_duration),
+                session_id.eq(session),
                 user_id.eq(1),
                 created_at.eq(now),
                 updated_at.eq(now),

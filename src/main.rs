@@ -1,4 +1,5 @@
 mod database;
+mod jwt;
 mod models;
 mod schema;
 
@@ -16,11 +17,10 @@ use rocket::response::content::Custom;
 use rocket::response::status::NotFound;
 use std::path::Path;
 
-#[get("/segments/<file_name>")]
-async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>> {
+#[get("/segments/<file_name>?<token>")]
+async fn segment(file_name: &str, token: &str) -> Result<Custom<NamedFile>, NotFound<String>> {
     let regex = Regex::new(r"([a-zA-Z0-9]{10})_(\d+)\.ts")
         .map_err(|_| NotFound("Video not found.".to_string()))?;
-
     let capture_groups = regex.captures(file_name).unwrap();
 
     let variant_pid = capture_groups.get(1).map_or("", |m| m.as_str());
@@ -48,9 +48,11 @@ async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>>
 
     let named_file = NamedFile::open(Path::new(&path)).await;
 
+    let session_id = jwt::decode_token(token)?.claims.sub;
+
     match named_file {
         Ok(named_file) => {
-            VideoStreamEvent::log_event(&variant, segment.duration);
+            VideoStreamEvent::log_event(&variant, segment.duration, &session_id);
 
             let content_type = ContentType::new("video", "mp2t");
             Result::Ok(Custom(content_type, named_file))
@@ -59,8 +61,8 @@ async fn segment(file_name: &str) -> Result<Custom<NamedFile>, NotFound<String>>
     }
 }
 
-#[get("/variants/<file_name>")]
-async fn variant(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
+#[get("/variants/<file_name>?<token>")]
+async fn variant(file_name: &str, token: &str) -> Result<Custom<String>, NotFound<String>> {
     let regex = Regex::new(r"([a-zA-Z0-9]{10}).m3u8")
         .map_err(|_| NotFound("Video not found.".to_string()))?;
 
@@ -94,8 +96,8 @@ async fn variant(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
     for segment in segments.into_iter() {
         playlist.push_str(&format!("#EXTINF:{}\n", segment.duration));
         playlist.push_str(&format!(
-            "http://localhost:8000/segments/{}_{}.ts\n",
-            variant_pid, segment.position
+            "http://localhost:8000/segments/{}_{}.ts?token={}\n",
+            variant_pid, segment.position, token
         ));
     }
 
@@ -129,6 +131,8 @@ async fn video(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
         return Result::Err(NotFound("Video has no variants.".to_string()));
     }
 
+    let token = jwt::generate()?;
+
     let mut playlist = String::from("#EXTM3U\n");
 
     for variant in variants.into_iter() {
@@ -137,8 +141,8 @@ async fn video(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
             variant.bitrate, variant.width, variant.height
         ));
         playlist.push_str(&format!(
-            "http://localhost:8000/variants/{}.m3u8\n",
-            variant.public_id
+            "http://localhost:8000/variants/{}.m3u8?token={}\n",
+            variant.public_id, token
         ));
     }
 
