@@ -113,6 +113,7 @@ table! {
         duration -> Float8,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+        session_id -> Nullable<Varchar>,
     }
 }
 
