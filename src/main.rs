@@ -1,3 +1,4 @@
+mod cors;
 mod database;
 mod jwt;
 mod models;
@@ -9,6 +10,7 @@ extern crate diesel;
 #[macro_use]
 extern crate rocket;
 
+use cors::CORS;
 use models::*;
 use regex::Regex;
 use rocket::fs::NamedFile;
@@ -153,5 +155,7 @@ async fn video(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![segment, variant, video])
+    rocket::build()
+        .attach(CORS)
+        .mount("/", routes![segment, variant, video])
 }
