@@ -16,7 +16,7 @@ use regex::Regex;
 use rocket::fs::NamedFile;
 use rocket::http::ContentType;
 use rocket::response::content::Custom;
-use rocket::response::status::NotFound;
+use rocket::response::status::{Accepted, NotFound};
 use std::path::Path;
 
 #[get("/segments/<file_name>?<token>")]
@@ -153,9 +153,14 @@ async fn video(file_name: &str) -> Result<Custom<String>, NotFound<String>> {
     Result::Ok(Custom(content_type, playlist))
 }
 
+#[get("/")]
+async fn health_check() -> Accepted<String> {
+    Accepted(Some(String::from("Ok")))
+}
+
 #[launch]
 fn rocket() -> _ {
     rocket::build()
         .attach(CORS)
-        .mount("/", routes![segment, variant, video])
+        .mount("/", routes![health_check, segment, variant, video])
 }

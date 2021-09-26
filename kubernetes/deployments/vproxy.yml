@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vproxy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vproxy
+  template:
+    metadata:
+      labels:
+        app: vproxy
+    spec:
+      containers:
+        - name: vproxy
+          imagePullPolicy: Always
+          image: gcr.io/albucode/vproxy:latest
+          args: ["vproxy"]
+          env:
+            - name: DATABASE_URL
+              value: "postgres://albuvideo_api:ftFGW5QNWOGIaEBtyhnWw2wr42EJ6s8f@postgres:5432/albuvideo_api_production"
+            - name: ROCKET_ENV
+              value: "production"
+          ports:
+            - containerPort: 8000
+              protocol: TCP

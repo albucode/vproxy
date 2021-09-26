@@ -1,0 +1,5 @@
+.git/
+kubernetes/
+target/
+.DS_Store
+.env
